@@ -1,0 +1,21 @@
+---
+version: 1
+applications:
+  - name: es-proxy
+    memory: ((MEMORY))
+    instances: ((INSTANCES))
+    routes:
+      - route: identity-idva-es-proxy-((ENVIRONMENT_NAME)).apps.internal
+    buildpacks:
+      - go_buildpack
+    command: |
+      AWS_ACCESS_KEY_ID=$(echo $VCAP_SERVICES | jq -r '."aws-elasticsearch"[0].credentials.access_key') \
+      AWS_SECRET_ACCESS_KEY=$(echo $VCAP_SERVICES | jq -r '."aws-elasticsearch"[0].credentials.secret_key') \
+      bin/aws-sigv4-proxy -v --name=es --region=$(echo $VCAP_SERVICES | jq -r '."aws-elasticsearch"[0].credentials.host' | cut -f2 -d '.') \
+      --host=$(echo $VCAP_SERVICES | jq -r '."aws-elasticsearch"[0].credentials.host')
+    services:
+      - sk-elasticsearch
+    env:
+      GOPROXY: direct
+      CGO_ENABLED: '0'
+      GOOS: linux
